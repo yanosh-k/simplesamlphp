@@ -147,9 +147,9 @@ class FederationTest extends TestCase
                 // stub
             }
 
-            public function authenticate(array &$state): void
+            public function authenticate(array &$state): ?Response
             {
-                // stub
+                return null;
             }
 
             public static function getSourcesOfType(string $type): array
@@ -311,9 +311,9 @@ class FederationTest extends TestCase
                 // stub
             }
 
-            public function authenticate(array &$state): void
+            public function authenticate(array &$state): ?Response
             {
-                // stub
+                return null;
             }
 
             public function getMetadata(): Configuration

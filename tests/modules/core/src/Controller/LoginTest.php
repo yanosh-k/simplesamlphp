@@ -18,6 +18,7 @@ use SimpleSAML\TestUtils\ClearStateTestCase;
 use SimpleSAML\XHTML\Template;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Set of tests for the controllers in the "core" module.
@@ -117,7 +118,7 @@ class LoginTest extends ClearStateTestCase
                 // stub
             }
 
-            public function authenticate(array &$state): void
+            public function authenticate(array &$state): Response
             {
                 // stub
             }
@@ -183,7 +184,7 @@ class LoginTest extends ClearStateTestCase
                 // stub
             }
 
-            public function authenticate(array &$state): void
+            public function authenticate(array &$state): Response
             {
                 // stub
             }

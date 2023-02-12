@@ -116,7 +116,7 @@ abstract class Source
      *
      * @param array &$state Information about the current authentication.
      */
-    public function reauthenticate(array &$state): void
+    public function reauthenticate(array &$state): ?Response
     {
         Assert::notNull($state['ReturnCallback']);
 
@@ -130,6 +130,8 @@ abstract class Source
         foreach ($data as $k => $v) {
             $state[$k] = $v;
         }
+
+        return null;
     }
 
 
@@ -244,9 +246,10 @@ abstract class Source
      *
      * @param array &$state Information about the current logout operation.
      */
-    public function logout(array &$state): void
+    public function logout(array &$state): ?Response
     {
         // default logout handler which doesn't do anything
+        return null;
     }
 
 

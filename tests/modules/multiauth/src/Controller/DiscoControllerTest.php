@@ -14,8 +14,7 @@ use SimpleSAML\Module\multiauth\Auth\Source\MultiAuth;
 use SimpleSAML\Module\multiauth\Controller;
 use SimpleSAML\Session;
 use SimpleSAML\XHTML\Template;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\{RedirectResponse, Request, Response};
 
 /**
  * Set of tests for the controllers in the "multiauth" module.
@@ -127,9 +126,9 @@ class DiscoControllerTest extends TestCase
                 // stub
             }
 
-            public function authenticate(array &$state): void
+            public function authenticate(array &$state): RedirectResponse
             {
-                // stub
+                return null;
             }
 
             public static function getById(string $authId, ?string $type = null): ?Source
@@ -181,9 +180,9 @@ class DiscoControllerTest extends TestCase
                 // stub
             }
 
-            public function authenticate(array &$state): void
+            public function authenticate(array &$state): RedirectResponse
             {
-                // stub
+                return null;
             }
 
             public static function getById(string $authId, ?string $type = null): ?Source
@@ -237,9 +236,9 @@ class DiscoControllerTest extends TestCase
                 // stub
             }
 
-            public function authenticate(array &$state): void
+            public function authenticate(array &$state): RedirectResponse
             {
-                // stub
+                return null;
             }
 
             public static function getById(string $authId, ?string $type = null): ?Source
@@ -293,9 +292,9 @@ class DiscoControllerTest extends TestCase
                 // stub
             }
 
-            public function authenticate(array &$state): void
+            public function authenticate(array &$state): RedirectResponse
             {
-                // stub
+                return null;
             }
 
             public static function getById(string $authId, ?string $type = null): ?Source
@@ -347,9 +346,9 @@ class DiscoControllerTest extends TestCase
                 // stub
             }
 
-            public function authenticate(array &$state): void
+            public function authenticate(array &$state): RedirectResponse
             {
-                // stub
+                return null;
             }
 
             public static function getById(string $authId, ?string $type = null): ?Source

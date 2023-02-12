@@ -106,7 +106,7 @@ class TestTest extends TestCase
         $c = new TestController($this->config, $this->session);
         $c->setAuthUtils($this->authUtils);
         $c->setAuthSimple(new class ('admin') extends Auth\Simple {
-            public function logout($params = null): void
+            public function logout($params = null): Response
             {
                 // stub
             }
@@ -164,7 +164,7 @@ class TestTest extends TestCase
                 return false;
             }
 
-            public function login(array $params = []): void
+            public function login(array $params = []): Response
             {
                 // stub
             }

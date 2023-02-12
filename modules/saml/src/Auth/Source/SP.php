@@ -24,6 +24,8 @@ use SimpleSAML\Session;
 use SimpleSAML\Store;
 use SimpleSAML\Store\StoreFactory;
 use SimpleSAML\Utils;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class SP extends \SimpleSAML\Auth\Source
 {
@@ -680,15 +682,14 @@ class SP extends \SimpleSAML\Auth\Source
      * @param string $idp  The entity ID of the IdP.
      * @param array $state  The state array for the current authentication.
      */
-    public function startSSO(string $idp, array $state): void
+    public function startSSO(string $idp, array $state): Response
     {
         $idpMetadata = $this->getIdPMetadata($idp);
 
         $type = $idpMetadata->getString('metadata-set');
         Assert::oneOf($type, ['saml20-idp-remote']);
 
-        $this->startSSO2($idpMetadata, $state);
-        Assert::true(false); // Should not return
+        return $this->startSSO2($idpMetadata, $state);
     }
 
 
@@ -697,7 +698,7 @@ class SP extends \SimpleSAML\Auth\Source
      *
      * @param array $state  The state array.
      */
-    private function startDisco(array $state): void
+    private function startDisco(array $state): Response
     {
         $id = Auth\State::saveState($state, 'saml:sp:sso');
 
@@ -724,7 +725,7 @@ class SP extends \SimpleSAML\Auth\Source
         }
 
         $httpUtils = new Utils\HTTP();
-        $httpUtils->redirectTrustedURL($discoURL, $params);
+        return $httpUtils->redirectTrustedURL($discoURL, $params);
     }
 
 
@@ -735,7 +736,7 @@ class SP extends \SimpleSAML\Auth\Source
      *
      * @param array &$state  Information about the current authentication.
      */
-    public function authenticate(array &$state): void
+    public function authenticate(array &$state): ?Response
     {
         // We are going to need the authId in order to retrieve this authentication source later
         $state['saml:sp:AuthId'] = $this->authId;
@@ -772,12 +773,10 @@ class SP extends \SimpleSAML\Auth\Source
         }
 
         if ($idp === null) {
-            $this->startDisco($state);
-            Assert::true(false);
+            return $this->startDisco($state);
         }
 
-        $this->startSSO($idp, $state);
-        Assert::true(false);
+        return $this->startSSO($idp, $state);
     }
 
 
@@ -789,7 +788,7 @@ class SP extends \SimpleSAML\Auth\Source
      *
      * @param array &$state  Information about the current authentication.
      */
-    public function reauthenticate(array &$state): void
+    public function reauthenticate(array &$state): RedirectResponse
     {
         $session = Session::getSessionFromRequest();
         $data = $session->getAuthState($this->authId);
@@ -852,7 +851,8 @@ class SP extends \SimpleSAML\Auth\Source
 
             $state['saml:sp:IdPMetadata'] = $this->getIdPMetadata($state['saml:sp:IdP']);
             $state['saml:sp:AuthId'] = $this->authId;
-            self::askForIdPChange($state);
+
+            return self::askForIdPChange($state);
         }
     }
 
@@ -876,7 +876,7 @@ class SP extends \SimpleSAML\Auth\Source
      *
      * @throws \SAML2\Exception\Protocol\NoPassiveException In case the authentication request was passive.
      */
-    public static function askForIdPChange(array &$state): void
+    public static function askForIdPChange(array &$state): RedirectResponse
     {
         Assert::keyExists($state, 'saml:sp:IdPMetadata');
         Assert::keyExists($state, 'saml:sp:AuthId');
@@ -895,8 +895,7 @@ class SP extends \SimpleSAML\Auth\Source
         $url = Module::getModuleURL('saml/proxy/invalid_session.php');
 
         $httpUtils = new Utils\HTTP();
-        $httpUtils->redirectTrustedURL($url, ['AuthState' => $id]);
-        Assert::true(false);
+        return $httpUtils->redirectTrustedURL($url, ['AuthState' => $id]);
     }
 
 
@@ -907,7 +906,7 @@ class SP extends \SimpleSAML\Auth\Source
      *
      * @param array $state The state array.
      */
-    public static function reauthLogout(array $state): void
+    public static function reauthLogout(array $state): Response
     {
         Logger::debug('Proxy: logging the user out before re-authentication.');
 
@@ -917,8 +916,7 @@ class SP extends \SimpleSAML\Auth\Source
         $state['Responder'] = [SP::class, 'reauthPostLogout'];
 
         $idp = IdP::getByState($state);
-        $idp->handleLogoutRequest($state, null);
-        Assert::true(false);
+        return $idp->handleLogoutRequest($state, null);
     }
 
 
@@ -927,7 +925,7 @@ class SP extends \SimpleSAML\Auth\Source
      *
      * @param array $state  The authentication state.
      */
-    public static function reauthPostLogin(array $state): void
+    public static function reauthPostLogin(array $state): Response
     {
         Assert::keyExists($state, 'ReturnCallback');
 
@@ -937,8 +935,7 @@ class SP extends \SimpleSAML\Auth\Source
         $session->doLogin($authId, Auth\State::getPersistentAuthData($state));
 
         // resume the login process
-        call_user_func($state['ReturnCallback'], $state);
-        Assert::true(false);
+        return call_user_func($state['ReturnCallback'], $state);
     }
 
 
@@ -950,7 +947,7 @@ class SP extends \SimpleSAML\Auth\Source
      * @param \SimpleSAML\IdP $idp The IdP we are logging out from.
      * @param array &$state The state array with the state during logout.
      */
-    public static function reauthPostLogout(IdP $idp, array $state): void
+    public static function reauthPostLogout(IdP $idp, array $state): Response
     {
         Assert::keyExists($state, 'saml:sp:AuthId');
 
@@ -961,11 +958,10 @@ class SP extends \SimpleSAML\Auth\Source
         }
 
         /** @var \SimpleSAML\Module\saml\Auth\Source\SP $sp */
-        $sp = Auth\Source::getById($state['saml:sp:AuthId'], Module\saml\Auth\Source\SP::class);
+        $sp = Auth\Source::getById($state['saml:sp:AuthId'], self::class);
 
         Logger::debug('Proxy: logging in again.');
-        $sp->authenticate($state);
-        Assert::true(false);
+        return $sp->authenticate($state);
     }
 
 
@@ -1033,15 +1029,14 @@ class SP extends \SimpleSAML\Auth\Source
      *
      * @param array $state  The logout state.
      */
-    public function logout(array &$state): void
+    public function logout(array &$state): Response
     {
         Assert::keyExists($state, 'saml:logout:Type');
 
         $logoutType = $state['saml:logout:Type'];
         Assert::oneOf($logoutType, ['saml2']);
 
-        $this->startSLO2($state);
-        Assert::true(false); // Should not return
+        return $this->startSLO2($state);
     }
 
 

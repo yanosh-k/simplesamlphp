@@ -10,6 +10,7 @@ use SimpleSAML\Auth;
 use SimpleSAML\Configuration;
 use SimpleSAML\Error\Exception;
 use SimpleSAML\Module\core\Auth\Source\SourceIPSelector;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @covers \SimpleSAML\Module\core\Auth\Source\AbstractSourceSelector
@@ -114,18 +115,19 @@ class SourceIPSelectorTest extends TestCase
              * @param array $state
              * @return void
              */
-            public static function doAuthentication(Auth\Source $as, array $state): void
+            public static function doAuthentication(Auth\Source $as, array $state): Response
             {
-                // Dummy
+                return new Response();
             }
 
             /**
              * @param array &$state
              * @return void
              */
-            public function authenticate(array &$state): void
+            public function authenticate(array &$state): Response
             {
                 $state['finished'] = true;
+                return new Response();
             }
         };
 

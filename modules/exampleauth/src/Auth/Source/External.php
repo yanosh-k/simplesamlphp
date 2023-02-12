@@ -9,7 +9,7 @@ use SimpleSAML\Auth;
 use SimpleSAML\Error;
 use SimpleSAML\Module;
 use SimpleSAML\Utils;
-use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\{RedirectResponse, Request, Response};
 use Symfony\Component\HttpFoundation\Session\Session as SymfonySession;
 
 /**
@@ -102,7 +102,7 @@ class External extends Auth\Source
      *
      * @param array &$state  Information about the current authentication.
      */
-    public function authenticate(array &$state): void
+    public function authenticate(array &$state): ?RedirectResponse
     {
         $attributes = $this->getUser();
         if ($attributes !== null) {
@@ -113,7 +113,7 @@ class External extends Auth\Source
              * to the authentication process.
              */
             $state['Attributes'] = $attributes;
-            return;
+            return null;
         }
 
         /*
@@ -167,14 +167,9 @@ class External extends Auth\Source
          * the real name of the parameter for the login page.
          */
         $httpUtils = new Utils\HTTP();
-        $httpUtils->redirectTrustedURL($authPage, [
+        return $httpUtils->redirectTrustedURL($authPage, [
             'ReturnTo' => $returnTo,
         ]);
-
-        /*
-         * The redirect function never returns, so we never get this far.
-         */
-        Assert::true(false);
     }
 
 
@@ -264,7 +259,7 @@ class External extends Auth\Source
      *
      * @param array &$state  The logout state array.
      */
-    public function logout(array &$state): void
+    public function logout(array &$state): ?Response
     {
         $session = new SymfonySession();
         if (!$session->getId()) {
@@ -277,5 +272,6 @@ class External extends Auth\Source
          * If we need to do a redirect to a different page, we could do this
          * here, but in this example we don't need to do this.
          */
+        return null;
     }
 }
