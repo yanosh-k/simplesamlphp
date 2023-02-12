@@ -9,7 +9,6 @@ use SimpleSAML\Assert\Assert;
 use SimpleSAML\Auth;
 use SimpleSAML\Configuration;
 use SimpleSAML\Error;
-use SimpleSAML\HTTP\RunnableResponse;
 use SimpleSAML\Module;
 use SimpleSAML\Module\core\Auth\UserPassBase;
 use SimpleSAML\Module\core\Auth\UserPassOrgBase;
@@ -454,6 +453,7 @@ class Login
         if (empty($returnTo)) {
             return $this->config->getBasePath();
         }
+
         return $returnTo;
     }
 
@@ -463,7 +463,7 @@ class Login
      *
      * @param Request $request The request that lead to this login operation.
      */
-    public function cleardiscochoices(Request $request): void
+    public function cleardiscochoices(Request $request): RedirectResponse
     {
         $httpUtils = new Utils\HTTP();
 
@@ -483,6 +483,6 @@ class Login
         $returnTo = $this->getReturnPath($request);
 
         // Redirect to destination.
-        $httpUtils->redirectTrustedURL($returnTo);
+        return $httpUtils->redirectTrustedURL($returnTo);
     }
 }

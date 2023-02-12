@@ -15,6 +15,7 @@ use SimpleSAML\IdP\TraditionalLogoutHandler;
 use SimpleSAML\Error;
 use SimpleSAML\Metadata\MetaDataStorageHandler;
 use SimpleSAML\Utils;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * IdP class.
@@ -547,12 +548,11 @@ class IdP
      * @param IdP      $idp Deprecated. Will be removed.
      * @param array    &$state The logout state from doLogoutRedirect().
      */
-    public static function finishLogoutRedirect(IdP $idp, array $state): void
+    public static function finishLogoutRedirect(IdP $idp, array $state): RedirectResponse
     {
         Assert::notNull($state['core:Logout:URL']);
 
         $httpUtils = new Utils\HTTP();
-        $httpUtils->redirectTrustedURL($state['core:Logout:URL']);
-        Assert::true(false);
+        return $httpUtils->redirectTrustedURL($state['core:Logout:URL']);
     }
 }

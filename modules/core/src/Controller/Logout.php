@@ -19,6 +19,7 @@ use SimpleSAML\Stats;
 use SimpleSAML\Utils;
 use SimpleSAML\XHTML\Template;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 use function call_user_func;
 use function in_array;
@@ -396,9 +397,9 @@ class Logout
 
     /**
      * @param Request $request The request that lead to this logout operation.
-     * @return \SimpleSAML\HTTP\RunnableResponse
+     * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function resumeLogout(Request $request): RunnableResponse
+    public function resumeLogout(Request $request): Response
     {
         if (!$request->query->has('id')) {
             throw new Error\BadRequest('Missing required parameter: id');
@@ -409,6 +410,7 @@ class Logout
         $idp = IdP::getByState($state);
 
         $assocId = $state['core:TerminatedAssocId'];
-        return new RunnableResponse([$idp->getLogoutHandler(), 'startLogout'], [&$state, $assocId]);
+        $logoutHandler = $idp->getLogoutHandler();
+        return $logoutHandler->startLogout($state, $assocId);
     }
 }

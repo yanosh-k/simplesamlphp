@@ -7,10 +7,10 @@ namespace SimpleSAML\Test\Module\core\Controller;
 use PHPUnit\Framework\TestCase;
 use SimpleSAML\Configuration;
 use SimpleSAML\Error;
-use SimpleSAML\HTTP\RunnableResponse;
 use SimpleSAML\Module\core\Controller;
 use SimpleSAML\Session;
 use SimpleSAML\XHTML\Template;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -109,7 +109,7 @@ class ErrorReportTest extends TestCase
 
         $response = $c->main($request);
 
-        $this->assertInstanceOf(RunnableResponse::class, $response);
-        $this->assertTrue($response->isSuccessful());
+        $this->assertInstanceOf(RedirectResponse::class, $response);
+        $this->assertFalse($response->isRedirection());
     }
 }
