@@ -12,6 +12,7 @@ use SimpleSAML\Error;
 use SimpleSAML\Logger;
 use SimpleSAML\Module;
 use SimpleSAML\Utils;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Helper class for username/password authentication.
@@ -194,7 +195,7 @@ abstract class UserPassBase extends Auth\Source
      *
      * @param array &$state  Information about the current authentication.
      */
-    public function authenticate(array &$state): void
+    public function authenticate(array &$state): ?Response
     {
         /*
          * Save the identifier of this authentication source, so that we can
@@ -234,7 +235,7 @@ abstract class UserPassBase extends Auth\Source
             $attributes = $this->login($username, $password);
             $state['Attributes'] = $attributes;
 
-            return;
+            return null;
         }
 
         // Save the $state-array, so that we can restore it after a redirect
@@ -247,10 +248,7 @@ abstract class UserPassBase extends Auth\Source
         $url = Module::getModuleURL('core/loginuserpass');
         $params = ['AuthState' => $id];
         $httpUtils = new Utils\HTTP();
-        $httpUtils->redirectTrustedURL($url, $params);
-
-        // The previous function never returns, so this code is never executed.
-        assert::true(false);
+        return $httpUtils->redirectTrustedURL($url, $params);
     }
 
 

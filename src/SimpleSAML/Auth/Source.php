@@ -11,6 +11,7 @@ use SimpleSAML\Logger;
 use SimpleSAML\Module;
 use SimpleSAML\Session;
 use SimpleSAML\Utils;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * This class defines a base class for authentication source.
@@ -104,7 +105,7 @@ abstract class Source
      *
      * @param array &$state Information about the current authentication.
      */
-    abstract public function authenticate(array &$state): void;
+    abstract public function authenticate(array &$state): ?Response;
 
 
     /**
@@ -141,7 +142,7 @@ abstract class Source
      *
      * @param array &$state Information about the current authentication.
      */
-    public static function completeAuth(array &$state): void
+    public static function completeAuth(array &$state): Response
     {
         Assert::keyExists($state, 'LoginCompletedHandler');
 
@@ -150,15 +151,12 @@ abstract class Source
         $func = $state['LoginCompletedHandler'];
         Assert::isCallable($func);
 
-        call_user_func($func, $state);
-        Assert::true(false);
+        return call_user_func($func, $state);
     }
 
 
     /**
      * Start authentication.
-     *
-     * This method never returns.
      *
      * @param string|array $return The URL or function we should direct the user to after authentication. If using a
      * URL obtained from user input, please make sure to check it by calling \SimpleSAML\Utils\HTTP::checkURLAllowed().
@@ -168,9 +166,9 @@ abstract class Source
      * @param array $params Extra information about the login. Different authentication requestors may provide different
      * information. Optional, will default to an empty array.
      */
-    public function initLogin($return, ?string $errorURL = null, array $params = []): void
+    public function initLogin($return, ?string $errorURL = null, array $params = []): Response
     {
-        Assert::True(is_string($return) || is_array($return));
+        Assert::true(is_string($return) || is_array($return));
 
         $state = array_merge($params, [
             '\SimpleSAML\Auth\Source.id' => $this->authId,
@@ -192,25 +190,24 @@ abstract class Source
         }
 
         try {
-            $this->authenticate($state);
+            $response = $this->authenticate($state);
+            $response?->send();
         } catch (Error\Exception $e) {
             State::throwException($state, $e);
         } catch (\Exception $e) {
             $e = new Error\UnserializableException($e);
             State::throwException($state, $e);
         }
-        self::loginCompleted($state);
+        return self::loginCompleted($state);
     }
 
 
     /**
      * Called when a login operation has finished.
      *
-     * This method never returns.
-     *
      * @param array $state The state after the login has completed.
      */
-    public static function loginCompleted(array $state): void
+    public static function loginCompleted(array $state): Response
     {
         Assert::keyExists($state, '\SimpleSAML\Auth\Source.Return');
         Assert::keyExists($state, '\SimpleSAML\Auth\Source.id');
@@ -227,11 +224,10 @@ abstract class Source
         if (is_string($return)) {
             // redirect...
             $httpUtils = new Utils\HTTP();
-            $httpUtils->redirectTrustedURL($return);
+            return $httpUtils->redirectTrustedURL($return);
         } else {
-            call_user_func($return, $state);
+            return call_user_func($return, $state);
         }
-        Assert::true(false);
     }
 
 

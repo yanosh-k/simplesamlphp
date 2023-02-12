@@ -10,6 +10,7 @@ use SimpleSAML\Error;
 use SimpleSAML\Logger;
 use SimpleSAML\Module;
 use SimpleSAML\Utils;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Helper class for username/password/organization authentication.
@@ -207,7 +208,7 @@ abstract class UserPassOrgBase extends Auth\Source
      *
      * @param array &$state  Information about the current authentication.
      */
-    public function authenticate(array &$state): void
+    public function authenticate(array &$state): RedirectResponse
     {
         // We are going to need the authId in order to retrieve this authentication source later
         $state[self::AUTHID] = $this->authId;
@@ -217,7 +218,7 @@ abstract class UserPassOrgBase extends Auth\Source
         $url = Module::getModuleURL('core/loginuserpassorg');
         $params = ['AuthState' => $id];
         $httpUtils = new Utils\HTTP();
-        $httpUtils->redirectTrustedURL($url, $params);
+        return $httpUtils->redirectTrustedURL($url, $params);
     }
 
 

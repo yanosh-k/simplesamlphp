@@ -10,6 +10,7 @@ use SimpleSAML\Error;
 use SimpleSAML\Module;
 use SimpleSAML\Session;
 use SimpleSAML\Utils;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Helper class for simple authentication applications.
@@ -106,7 +107,8 @@ class Simple
             return;
         }
 
-        $this->login($params);
+        $response = $this->login($params);
+        $response->send();
     }
 
 
@@ -124,7 +126,7 @@ class Simple
      *
      * @param array $params Various options to the authentication request.
      */
-    public function login(array $params = []): void
+    public function login(array $params = []): Response
     {
         if (array_key_exists('KeepPost', $params)) {
             $keepPost = (bool) $params['KeepPost'];
@@ -164,8 +166,7 @@ class Simple
         }
 
         $as = $this->getAuthSource();
-        $as->initLogin($returnTo, $errorURL, $params);
-        Assert::true(false);
+        return $as->initLogin($returnTo, $errorURL, $params);
     }
 
 
@@ -184,7 +185,7 @@ class Simple
      * @param string|array|null $params Either the URL the user should be redirected to after logging out, or an array
      * with parameters for the logout. If this parameter is null, we will return to the current page.
      */
-    public function logout($params = null): void
+    public function logout($params = null): Response
     {
         Assert::true(is_array($params) || is_string($params) || $params === null);
 
@@ -222,24 +223,21 @@ class Simple
             }
         }
 
-        self::logoutCompleted($params);
+        return self::logoutCompleted($params);
     }
 
 
     /**
      * Called when logout operation completes.
      *
-     * This function never returns.
-     *
      * @param array $state The state after the logout.
      */
-    public static function logoutCompleted(array $state): void
+    public static function logoutCompleted(array $state): Response
     {
         Assert::true(isset($state['ReturnTo']) || isset($state['ReturnCallback']));
 
         if (isset($state['ReturnCallback'])) {
-            call_user_func($state['ReturnCallback'], $state);
-            Assert::true(false);
+            return call_user_func($state['ReturnCallback'], $state);
         } else {
             $params = [];
             if (isset($state['ReturnStateParam']) || isset($state['ReturnStateStage'])) {
@@ -248,7 +246,7 @@ class Simple
                 $params[$state['ReturnStateParam']] = $stateID;
             }
             $httpUtils = new Utils\HTTP();
-            $httpUtils->redirectTrustedURL($state['ReturnTo'], $params);
+            return $httpUtils->redirectTrustedURL($state['ReturnTo'], $params);
         }
     }
 

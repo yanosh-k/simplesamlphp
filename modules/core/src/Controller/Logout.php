@@ -84,14 +84,12 @@ class Logout
      *
      * @throws \SimpleSAML\Error\CriticalConfigurationError
      */
-    public function logout(Request $request, string $as): RunnableResponse
+    public function logout(Request $request, string $as): Response
     {
         $auth = new Auth\Simple($as);
         $returnTo = $this->getReturnPath($request);
-        return new RunnableResponse(
-            [$auth, 'logout'],
-            [$returnTo]
-        );
+
+        return $auth->logout($returnTo);
     }
 
 
