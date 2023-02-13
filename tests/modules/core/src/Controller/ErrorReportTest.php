@@ -110,6 +110,6 @@ class ErrorReportTest extends TestCase
         $response = $c->main($request);
 
         $this->assertInstanceOf(RedirectResponse::class, $response);
-        $this->assertFalse($response->isRedirection());
+        $this->assertTrue($response->isRedirection());
     }
 }
