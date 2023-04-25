@@ -184,7 +184,7 @@ class Login
                         $expire,
                         '/',   // path
                         null,  // domain
-                        null,  // secure
+                        $httpUtils->isHTTPS(),  // secure
                         true,  // httponly
                         false, // raw
                         $sameSiteNone,
@@ -214,7 +214,7 @@ class Login
                         $expire,
                         '/',   // path
                         null,  // domain
-                        null,  // secure
+                        $httpUtils->isHTTPS(),  // secure
                         true,  // httponly
                         false, // raw
                         $sameSiteNone,
