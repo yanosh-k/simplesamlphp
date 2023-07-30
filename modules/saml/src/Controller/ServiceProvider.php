@@ -341,7 +341,7 @@ class ServiceProvider
             }
 
             if ($authenticatingAuthority === null) {
-                $authenticatingAuthority = $assertion->getAuthenticatingAuthority();
+                $authenticatingAuthority = $assertion->getAuthnContext()?->getAuthenticatingAuthorities();
             }
             if ($nameId === null) {
                 $nameId = $assertion->getNameId();
@@ -408,14 +408,17 @@ class ServiceProvider
         }
 
         $state['LogoutState'] = $logoutState;
-        $state['saml:AuthenticatingAuthority'] = $authenticatingAuthority;
+        $state['saml:AuthenticatingAuthority'] = array_map(
+            fn($authority): string => $authority->getContent(),
+            $authenticatingAuthority,
+        );
         $state['saml:AuthenticatingAuthority'][] = $issuer;
         $state['PersistentAuthData'][] = 'saml:AuthenticatingAuthority';
         $state['saml:AuthnInstant'] = $assertion->getAuthnInstant();
         $state['PersistentAuthData'][] = 'saml:AuthnInstant';
         $state['saml:sp:SessionIndex'] = $sessionIndex;
         $state['PersistentAuthData'][] = 'saml:sp:SessionIndex';
-        $state['saml:sp:AuthnContext'] = $assertion->getAuthnContextClassRef();
+        $state['saml:sp:AuthnContext'] = $assertion->getAuthnContext()?->getAuthnContextClassRef();
         $state['PersistentAuthData'][] = 'saml:sp:AuthnContext';
 
         if ($expire !== null) {
