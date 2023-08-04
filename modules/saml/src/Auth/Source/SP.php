@@ -8,14 +8,20 @@ use Psr\Http\Message\RequestInterface;
 use SimpleSAML\{Auth, Configuration, Error, IdP, Logger, Module, Session, Store, Utils};
 use SimpleSAML\Assert\{Assert, AssertionFailedException};
 use SimpleSAML\Metadata\MetaDataStorageHandler;
-use SimpleSAML\SAML2\{AuthnRequest, Binding, LogoutRequest};
+use SimpleSAML\Module\saml\MessageBuilder;
+use SimpleSAML\SAML2\Binding;
 use SimpleSAML\SAML2\Constants as C;
 use SimpleSAML\SAML2\Exception\ArrayValidationException;
-use SimpleSAML\SAML2\Exception\Protocol\{NoAvailableIDPException, NoPassiveException, NoSupportedIDPException};
+use SimpleSAML\SAML2\Exception\Protocol\{
+    NoAvailableIDPException,
+    NoPassiveException,
+    NoSupportedIDPException,
+    ProxyCountExceededException,
+};
 use SimpleSAML\SAML2\XML\md\ContactPerson;
 use SimpleSAML\SAML2\XML\saml\NameID;
-use SimpleSAML\SAML2\XML\saml\{AuthnContextClassRef};
-use SimpleSAML\SAML2\XML\samlp\{Extensions, IDPEntry, IDPList, RequestedAuthnContext, RequesterID, Scoping};
+use SimpleSAML\SAML2\XML\samlp\{AuthnRequest, LogoutRequest};
+use SimpleSAML\SAML2\XML\samlp\Extensions;
 use SimpleSAML\Store\StoreFactory;
 use Symfony\Bridge\PsrHttpMessage\Factory\HttpFoundationFactory;
 use Symfony\Component\HttpFoundation\{RedirectResponse, Request, Response};
@@ -129,11 +135,6 @@ class SP extends Auth\Source
         $this->entityId = $entityId;
         $this->idp = $this->metadata->getOptionalString('idp', null);
         $this->discoURL = $this->metadata->getOptionalString('discoURL', null);
-        $this->disable_scoping = $this->metadata->getOptionalBoolean('disable_scoping', false);
-        $this->passAuthnContextClassRef = $this->metadata->getOptionalBoolean(
-            'proxymode.passAuthnContextClassRef',
-            false
-        );
     }
 
 
@@ -454,174 +455,23 @@ class SP extends Auth\Source
         if (isset($state['saml:ProxyCount']) && $state['saml:ProxyCount'] < 0) {
             Auth\State::throwException(
                 $state,
-                new Module\saml\Error\ProxyCountExceeded(C::STATUS_RESPONDER)
+                new ProxyCountExceededException(C::STATUS_RESPONDER)
             );
         }
 
-        $ar = Module\saml\Message::buildAuthnRequest($this->metadata, $idpMetadata);
+        // save IdP entity ID as part of the state
+        $state['ExpectedIssuer'] = $idpMetadata->getString('entityID');
+        Auth\State::saveState($state, 'saml:sp:sso', true);
 
-        $ar->setAssertionConsumerServiceURL(Module::getModuleURL('saml/sp/saml2-acs.php/' . $this->authId));
+        $builder = new MessageBuilder($this->metadata, $idpMetadata, $state);
+        $ar = $builder->buildAuthnRequest($this->authId);
 
         if (isset($state['\SimpleSAML\Auth\Source.ReturnURL'])) {
             $ar->setRelayState($state['\SimpleSAML\Auth\Source.ReturnURL']);
         }
 
-        $arrayUtils = new Utils\Arrays();
-
-        $accr = null;
-        if ($idpMetadata->getOptionalString('AuthnContextClassRef', null) !== null) {
-            $accr = $arrayUtils->arrayize($idpMetadata->getString('AuthnContextClassRef'));
-            $accr = array_map(fn($value): AuthnContextClassRef => new AuthnContextClassRef($value), $accr);
-        } elseif (isset($state['saml:AuthnContextClassRef'])) {
-            $accr = $arrayUtils->arrayize($state['saml:AuthnContextClassRef']);
-        }
-
-        if ($accr !== null) {
-            $comp = C::COMPARISON_EXACT;
-            if ($idpMetadata->getOptionalString('AuthnContextComparison', null) !== null) {
-                $comp = $idpMetadata->getString('AuthnContextComparison');
-            } elseif (
-                isset($state['saml:AuthnContextComparison'])
-                && in_array($state['saml:AuthnContextComparison'], [
-                    C::COMPARISON_EXACT,
-                    C::COMPARISON_MINIMUM,
-                    C::COMPARISON_MAXIMUM,
-                    C::COMPARISON_BETTER,
-                ], true)
-            ) {
-                $comp = $state['saml:AuthnContextComparison'];
-            }
-            $ar->setRequestedAuthnContext(
-                new RequestedAuthnContext($accr, $comp),
-            );
-        } elseif (
-            $this->passAuthnContextClassRef
-            && isset($state['saml:RequestedAuthnContext'])
-            && isset($state['saml:RequestedAuthnContext']['AuthnContextClassRef'])
-        ) {
-            if (
-                isset($state['saml:RequestedAuthnContext']['Comparison'])
-                && in_array(
-                    $state['saml:RequestedAuthnContext']['Comparison'],
-                    [
-                        C::COMPARISON_EXACT,
-                        C::COMPARISON_MINIMUM,
-                        C::COMPARISON_MAXIMUM,
-                        C::COMPARISON_BETTER,
-                    ],
-                    true
-                )
-            ) {
-                // RequestedAuthnContext has been set by an SP behind the proxy so pass it to the upper IdP
-                $ar->setRequestedAuthnContext(
-                    new RequestedAuthnContext(
-                        [
-                            $state['saml:RequestedAuthnContext']['AuthnContextClassRef'],
-                        ],
-                        $state['saml:RequestedAuthnContext']['Comparison'],
-                    ),
-                );
-            }
-        }
-
-        if (isset($state['saml:Audience'])) {
-            $ar->setAudiences($state['saml:Audience']);
-        }
-
-        if (isset($state['ForceAuthn'])) {
-            $ar->setForceAuthn((bool) $state['ForceAuthn']);
-        }
-
-        if (isset($state['isPassive'])) {
-            $ar->setIsPassive((bool) $state['isPassive']);
-        }
-
-        if (isset($state['saml:NameID'])) {
-            if (!is_array($state['saml:NameID']) && !is_a($state['saml:NameID'], NameID::class)) {
-                throw new Error\Exception('Invalid value of $state[\'saml:NameID\'].');
-            }
-
-            $nameId = $state['saml:NameID'];
-            if (is_array($nameId)) {
-                $nid = NameID::fromArray($state['saml:NameID']);
-            } else {
-                $nid = $nameId;
-            }
-
-            $ar->setNameId($nid);
-        }
-
-        if (!empty($state['saml:NameIDPolicy'])) {
-            $ar->setNameIdPolicy($state['saml:NameIDPolicy']);
-        }
-
-        $proxyCount = $idpList = null;
-        $requesterID = [];
-
-        /* Only check for real info for Scoping element if we are going to send Scoping element */
-        if ($this->disable_scoping !== true && $idpMetadata->getOptionalBoolean('disable_scoping', false) !== true) {
-            $idpEntry = [];
-            if (isset($state['IDPList'])) {
-                $idpList = $state['IDPList'];
-            } elseif (!empty($this->metadata->getOptionalArray('IDPList', []))) {
-                foreach ($this->metadata->getArray('IDPList') as $entry) {
-                    $idpEntry[] = new IDPEntry($entry);
-                }
-                $idpList = new IDPList($idpEntry);
-            } elseif (!empty($idpMetadata->getOptionalArray('IDPList', []))) {
-                foreach ($idpMetadata->getArray('IDPList') as $entry) {
-                    $idpEntry[] = new IDPEntry($entry);
-                }
-                $idpList = new IDPList($idpEntry);
-            }
-
-            if (isset($state['saml:ProxyCount']) && $state['saml:ProxyCount'] !== null) {
-                $proxyCount = $state['saml:ProxyCount'];
-            } elseif ($idpMetadata->hasValue('ProxyCount')) {
-                $proxyCount = $idpMetadata->getInteger('ProxyCount');
-            } elseif ($this->metadata->hasValue('ProxyCount')) {
-                  $proxyCount = $this->metadata->getInteger('ProxyCount');
-            }
-
-            $requesterID = [];
-            if (isset($state['saml:RequesterID'])) {
-                foreach ($state['saml:RequesterID'] as $requesterId) {
-                    $requesterID[] = new RequesterID($requesterId);
-                }
-            }
-
-            if (isset($state['core:SP'])) {
-                $requesterID[] = new RequesterID($state['core:SP']);
-            }
-        } else {
-            Logger::debug('Disabling samlp:Scoping for ' . var_export($idpMetadata->getString('entityid'), true));
-        }
-
-        $scoping = new Scoping($proxyCount, $idpList, $requesterID);
-        $ar->setScoping($scoping);
-
-        // If the downstream SP has set extensions then use them.
-        // Otherwise use extensions that might be defined in the local SP (only makes sense in a proxy scenario)
-        if (isset($state['saml:Extensions']) && count($state['saml:Extensions']) > 0) {
-            $ar->setExtensions(new Extensions($state['saml:Extensions']));
-        } elseif ($this->metadata->getOptionalArray('saml:Extensions', null) !== null) {
-            $ar->setExtensions(new Extensions($this->metadata->getArray('saml:Extensions')));
-        }
-
-        $providerName = $this->metadata->getOptionalString("ProviderName", null);
-        if ($providerName !== null) {
-            $ar->setProviderName($providerName);
-        }
-
-
-        // save IdP entity ID as part of the state
-        $state['ExpectedIssuer'] = $idpMetadata->getString('entityid');
-
-        $id = Auth\State::saveState($state, 'saml:sp:sso', true);
-        $ar->setId($id);
-
         Logger::debug(
-            'Sending SAML 2 AuthnRequest to ' . var_export($idpMetadata->getString('entityid'), true)
+            'Sending SAML 2 AuthnRequest to ' . var_export($idpMetadata->getString('entityID'), true)
         );
 
         // Select appropriate SSO endpoint
@@ -644,7 +494,6 @@ class SP extends Auth\Source
                 ]
             );
         }
-        $ar->setDestination($dst['Location']);
 
         $b = Binding::getBinding($dst['Binding']);
 

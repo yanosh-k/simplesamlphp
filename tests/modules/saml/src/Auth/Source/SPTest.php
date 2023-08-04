@@ -9,13 +9,13 @@ use PHPUnit\Framework\TestCase;
 use SimpleSAML\Assert\AssertionFailedException;
 use SimpleSAML\Configuration;
 use SimpleSAML\Error\Exception;
-use SimpleSAML\SAML2\{AuthnRequest, LogoutRequest};
 use SimpleSAML\SAML2\Constants as C;
 use SimpleSAML\SAML2\Exception\Protocol\{NoAvailableIDPException, NoSupportedIDPException};
 use SimpleSAML\SAML2\Utils\XPath;
 use SimpleSAML\SAML2\XML\saml\AuthnContextClassRef;
 use SimpleSAML\SAML2\XML\saml\NameID;
-use SimpleSAML\SAML2\XML\samlp\{IDPEntry, IDPList};
+use SimpleSAML\SAML2\XML\samlp\{AuthnRequest, LogoutRequest}; // Messages
+use SimpleSAML\SAML2\XML\samlp\{IDPEntry, IDPList}; // Scoping
 use SimpleSAML\Test\Metadata\MetaDataStorageSourceTest;
 use SimpleSAML\TestUtils\ClearStateTestCase;
 use SimpleSAML\Test\Utils\{ExitTestException, SpTester};
@@ -78,7 +78,7 @@ class SPTest extends ClearStateTestCase
 
         $this->idpConfigArray = [
             'metadata-set'        => 'saml20-idp-remote',
-            'entityid'            => 'https://engine.surfconext.nl/authentication/idp/metadata',
+            'entityID'            => 'https://engine.surfconext.nl/authentication/idp/metadata',
             'SingleSignOnService' => [
                 [
                     'Binding'  => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect',
@@ -176,7 +176,7 @@ class SPTest extends ClearStateTestCase
     {
         $ar = $this->createAuthnRequest();
 
-        $xml = $ar->toSignedXML();
+        $xml = $ar->toXML();
 
         $xpCache = XPath::getXPath($xml);
         /** @var \DOMAttr[] $q */
@@ -201,29 +201,28 @@ class SPTest extends ClearStateTestCase
     public function testNameID(): void
     {
         $state = [
-            'saml:NameID' => ['value' => 'user@example.org', 'Format' => C::NAMEID_UNSPECIFIED]
+            'saml:NameID' => new NameID(value: 'user@example.org', Format: C::NAMEID_UNSPECIFIED),
         ];
 
         $ar = $this->createAuthnRequest($state);
 
         /** @var \SimpleSAML\SAML2\XML\saml\NameID $nameID */
-        $nameID = $ar->getNameId();
-        $this->assertEquals($state['saml:NameID']['value'], $nameID->getContent());
-        $this->assertEquals($state['saml:NameID']['Format'], $nameID->getFormat());
+        $nameID = $ar->getSubject()->getIdentifier();
+        $this->assertEquals($state['saml:NameID']->toArray(), $nameID->toArray());
 
-        $xml = $ar->toSignedXML();
+        $xml = $ar->toXML();
 
         $xpCache = XPath::getXPath($xml);
         /** @var \DOMAttr[] $q */
         $q = XPath::xpQuery($xml, '/samlp:AuthnRequest/saml:Subject/saml:NameID/@Format', $xpCache);
         $this->assertEquals(
-            $state['saml:NameID']['Format'],
+            $state['saml:NameID']->getFormat(),
             $q[0]->value
         );
 
         $q = XPath::xpQuery($xml, '/samlp:AuthnRequest/saml:Subject/saml:NameID', $xpCache);
         $this->assertEquals(
-            $state['saml:NameID']['value'],
+            $state['saml:NameID']->getContent(),
             $q[0]->textContent
         );
     }
@@ -247,7 +246,7 @@ class SPTest extends ClearStateTestCase
             $a->getRequestedAuthnContexts()[0]->getContent(),
         );
 
-        $xml = $ar->toSignedXML();
+        $xml = $ar->toXML();
 
         $xpCache = XPath::getXPath($xml);
         $q = XPath::xpQuery(
@@ -274,13 +273,9 @@ class SPTest extends ClearStateTestCase
         ];
 
         $ar = $this->createAuthnRequest($state);
+        $this->assertTrue($ar->getForceAuthn());
 
-        $this->assertEquals(
-            $state['ForceAuthn'],
-            $ar->getForceAuthn()
-        );
-
-        $xml = $ar->toSignedXML();
+        $xml = $ar->toXML();
 
         $xpCache = XPath::getXPath($xml);
         /** @var \DOMAttr[] $q */
@@ -582,15 +577,14 @@ class SPTest extends ClearStateTestCase
             $this->assertTrue(false, 'Expected ExitTestException');
         } catch (ExitTestException $e) {
             ['ar' => $ar] = $e->getTestResult();
-
             $this->assertContains(
                 (new IDPEntry($expectedScope))->toArray(),
-                ($ar->getScoping()->getIDPList()->toArray())['IDPEntry'],
+                ($ar->getScoping()?->getIDPList()?->toArray())['IDPEntry'],
             );
         }
     }
 
-    public function getScopingOrders(): array
+    public static function getScopingOrders(): array
     {
         return [
             [
