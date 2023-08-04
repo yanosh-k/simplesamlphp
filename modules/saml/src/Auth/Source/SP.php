@@ -858,25 +858,8 @@ class SP extends Auth\Source
             return null;
         }
 
-        $lr = Module\saml\Message::buildLogoutRequest($this->metadata, $idpMetadata);
-        $lr->setNameId($nameId);
-        $lr->setSessionIndex($sessionIndex);
-        $lr->setRelayState($id);
-        $lr->setDestination($endpoint['Location']);
-
-        if (isset($state['saml:logout:Extensions']) && count($state['saml:logout:Extensions']) > 0) {
-            $lr->setExtensions(new Extensions($state['saml:logout:Extensions']));
-        } elseif ($this->metadata->getOptionalArray('saml:logout:Extensions', null) !== null) {
-            $lr->setExtensions(new Extensions($this->metadata->getArray('saml:logout:Extensions')));
-        }
-
-        $encryptNameId = $idpMetadata->getOptionalBoolean('nameid.encryption', null);
-        if ($encryptNameId === null) {
-            $encryptNameId = $this->metadata->getOptionalBoolean('nameid.encryption', false);
-        }
-        if ($encryptNameId) {
-            $lr->encryptNameId(Module\saml\Message::getEncryptionKey($idpMetadata));
-        }
+        $builder = new MessageBuilder($this->metadata, $idpMetadata, $state);
+        $lr = $builder->buildLogoutRequest();
 
         $b = Binding::getBinding($endpoint['Binding']);
 

@@ -16,6 +16,7 @@ use SimpleSAML\SAML2\XML\saml\AuthnContextClassRef;
 use SimpleSAML\SAML2\XML\saml\NameID;
 use SimpleSAML\SAML2\XML\samlp\{AuthnRequest, LogoutRequest}; // Messages
 use SimpleSAML\SAML2\XML\samlp\{IDPEntry, IDPList}; // Scoping
+use SimpleSAML\SAML2\XML\samlp\SessionIndex;
 use SimpleSAML\Test\Metadata\MetaDataStorageSourceTest;
 use SimpleSAML\TestUtils\ClearStateTestCase;
 use SimpleSAML\Test\Utils\{ExitTestException, SpTester};
@@ -399,7 +400,7 @@ class SPTest extends ClearStateTestCase
         ];
 
         $info = ['AuthId' => 'default-sp'];
-        $config = ['entityID' => 'urn:x-simplesamlphp:example-sp'];
+        $config = ['entityid' => 'urn:x-simplesamlphp:example-sp', 'entityID' => 'urn:x-simplesamlphp:example-sp'];
         $as = new SpTester($info, $config);
         $request = Request::createFromGlobals();
         try {
@@ -1511,7 +1512,8 @@ class SPTest extends ClearStateTestCase
 
         $dom = DOMDocumentFactory::create();
         $extension = $dom->createElementNS('urn:some:namespace', 'MyLogoutExtension');
-        $extChunk = [new Chunk($extension)];
+        $extension->setAttribute('Dummy', 'true');
+        $extChunk = new Chunk($extension);
 
         $entityId = "https://engine.surfconext.nl/authentication/idp/metadata";
         $xml = MetaDataStorageSourceTest::generateIdpMetadataXml($entityId);
@@ -1525,17 +1527,13 @@ class SPTest extends ClearStateTestCase
         $state = [
             'saml:logout:IdP' => $entityId,
             'saml:logout:NameID' => $nameId,
-            'saml:logout:SessionIndex' => 'abc123',
-            'saml:logout:Extensions' => $extChunk,
+            'saml:logout:SessionIndex' => [new SessionIndex('abc123')],
+            'saml:logout:Extensions' => [$extChunk],
         ];
 
         $lr = $this->createLogoutRequest($state);
 
-        /** @var \SimpleSAML\SAML2\XML\samlp\Extensions $extensions */
-        $extensions = $lr->getExtensions();
-        $this->assertcount(1, $state['saml:logout:Extensions']);
-
-        $xml = $lr->toSignedXML();
+        $xml = $lr->toXML();
 
         $xpCache = XPath::getXPath($xml);
         $q = XPath::xpQuery($xml, '/samlp:LogoutRequest/saml:NameID', $xpCache);
@@ -1543,6 +1541,7 @@ class SPTest extends ClearStateTestCase
         $this->assertEquals('someone@example.com', $q[0]->nodeValue);
 
         $q = XPath::xpQuery($xml, '/samlp:LogoutRequest/samlp:Extensions', $xpCache);
+
         $this->assertCount(1, $q);
         $this->assertCount(1, $q[0]->childNodes);
         $this->assertEquals('MyLogoutExtension', $q[0]->firstChild->localName);
