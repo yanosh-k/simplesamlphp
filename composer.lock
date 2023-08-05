@@ -1904,12 +1904,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/simplesamlphp/saml2.git",
-                "reference": "3ba27b3866bb151ba48a61677b414e06f6d7b3b7"
+                "reference": "49e376dce6dcfe19c1cfc09e3bf9a112de9d06c5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/simplesamlphp/saml2/zipball/3ba27b3866bb151ba48a61677b414e06f6d7b3b7",
-                "reference": "3ba27b3866bb151ba48a61677b414e06f6d7b3b7",
+                "url": "https://api.github.com/repos/simplesamlphp/saml2/zipball/49e376dce6dcfe19c1cfc09e3bf9a112de9d06c5",
+                "reference": "49e376dce6dcfe19c1cfc09e3bf9a112de9d06c5",
                 "shasum": ""
             },
             "require": {
@@ -1970,7 +1970,7 @@
                 "issues": "https://github.com/simplesamlphp/saml2/issues",
                 "source": "https://github.com/simplesamlphp/saml2/tree/master"
             },
-            "time": "2023-08-04T12:39:59+00:00"
+            "time": "2023-08-05T13:07:10+00:00"
         },
         {
             "name": "simplesamlphp/simplesamlphp-assets-base",

@@ -280,6 +280,11 @@ class SP extends Auth\Source
             ];
         }
 
+        // add custom extensions
+        if ($this->metadata->hasValue('saml:Extensions')) {
+            $metadata['saml:Extensions'] = $this->metadata->getArray('saml:Extensions');
+        }
+
         // add EntityAttributes extension
         if ($this->metadata->hasValue('EntityAttributes')) {
             $metadata['EntityAttributes'] = $this->metadata->getArray('EntityAttributes');
