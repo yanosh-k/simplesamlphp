@@ -239,6 +239,7 @@ class Federation
                     );
                     $document = $builder->buildDocument()->toXML();
                     $document->ownerDocument->formatOutput = true;
+                    $document->ownerDocument->encoding = 'UTF-8';
 
                     $entity['metadata'] = $document->ownerDocument->saveXML();
                     $entities[$index] = $entity;
@@ -284,6 +285,7 @@ class Federation
                     );
                     $document = $builder->buildDocument()->toXML();
                     $document->ownerDocument->formatOutput = true;
+                    $document->ownerDocument->encoding = 'UTF-8';
 
                     $entity['metadata'] = $document->ownerDocument->saveXML();
                     $entities[$index] = $entity;
@@ -352,6 +354,7 @@ class Federation
             $entityDescriptor = $builder->buildDocument();
             $document = $entityDescriptor->toXML();
             $document->ownerDocument->formatOutput = true;
+            $document->ownerDocument->encoding = 'UTF-8';
             $xml = $document->ownerDocument->saveXML();
 
             // sanitize the attributes array to remove friendly names
