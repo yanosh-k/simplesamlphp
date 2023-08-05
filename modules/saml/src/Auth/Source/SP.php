@@ -8,7 +8,7 @@ use Psr\Http\Message\RequestInterface;
 use SimpleSAML\{Auth, Configuration, Error, IdP, Logger, Module, Session, Store, Utils};
 use SimpleSAML\Assert\{Assert, AssertionFailedException};
 use SimpleSAML\Metadata\MetaDataStorageHandler;
-use SimpleSAML\Module\saml\MessageBuilder;
+use SimpleSAML\Module\saml\Message;
 use SimpleSAML\SAML2\Binding;
 use SimpleSAML\SAML2\Constants as C;
 use SimpleSAML\SAML2\Exception\ArrayValidationException;
@@ -463,8 +463,8 @@ class SP extends Auth\Source
         $state['ExpectedIssuer'] = $idpMetadata->getString('entityID');
         Auth\State::saveState($state, 'saml:sp:sso', true);
 
-        $builder = new MessageBuilder($this->metadata, $idpMetadata, $state);
-        $ar = $builder->buildAuthnRequest($this->authId);
+        $builder = new Message\AuthnRequest($this->metadata, $idpMetadata, $state, $this->authId);
+        $ar = $builder->buildMessage();
 
         if (isset($state['\SimpleSAML\Auth\Source.ReturnURL'])) {
             $ar->setRelayState($state['\SimpleSAML\Auth\Source.ReturnURL']);
@@ -507,7 +507,7 @@ class SP extends Auth\Source
      * This function does not return.
      *
      * @param \SimpleSAML\SAML2\Binding $binding  The binding.
-     * @param \SimpleSAML\SAML2\AuthnRequest $ar  The authentication request.
+     * @param \SimpleSAML\SAML2\XML\samlp\AuthnRequest $ar  The authentication request.
      */
     public function sendSAML2AuthnRequest(Binding $binding, AuthnRequest $ar): Response
     {
@@ -522,13 +522,12 @@ class SP extends Auth\Source
      * This function does not return.
      *
      * @param \SimpleSAML\SAML2\Binding $binding  The binding.
-     * @param \SimpleSAML\SAML2\LogoutRequest  $ar  The logout request.
+     * @param \SimpleSAML\SAML2\XML\samlp\LogoutRequest  $ar  The logout request.
      */
     public function sendSAML2LogoutRequest(Binding $binding, LogoutRequest $lr): Response
     {
         $psrResponse = $binding->send($lr);
-        $httpFoundationFactory = new HttpFoundationFactory();
-        return $httpFoundationFactory->createResponse($psrResponse);
+        return (new HttpFoundationFactory())->createResponse($psrResponse);
     }
 
 
@@ -858,8 +857,8 @@ class SP extends Auth\Source
             return null;
         }
 
-        $builder = new MessageBuilder($this->metadata, $idpMetadata, $state);
-        $lr = $builder->buildLogoutRequest();
+        $builder = new Message\LogoutRequest($this->metadata, $idpMetadata, $state);
+        $lr = $builder->buildMessage();
 
         $b = Binding::getBinding($endpoint['Binding']);
 
