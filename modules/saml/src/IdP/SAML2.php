@@ -14,10 +14,11 @@ use RobRichards\XMLSecLibs\XMLSecurityKey;
 use SimpleSAML\{Auth, Configuration, Error, IdP, Logger, Module, Stats, Utils};
 use SimpleSAML\Assert\{Assert, AssertionFailedException};
 use SimpleSAML\Metadata\MetaDataStorageHandler;
+use SimpleSAML\Module\saml\MessageBuilder;
 use SimpleSAML\Module\saml\Message;
-use SimpleSAML\SAML2\{Assertion, EncryptedAssertion}; // Assertions
+use SimpleSAML\SAML2\XML\samlp\{Assertion, EncryptedAssertion}; // Assertions
 use SimpleSAML\SAML2\{Binding, HTTPRedirect, SOAP}; // Bindings
-use SimpleSAML\SAML2\{AuthnRequest, LogoutRequest, LogoutResponse, Response as SAML2_Response}; // Messages
+use SimpleSAML\SAML2\XML\samlp\{AuthnRequest, LogoutRequest, LogoutResponse, Response as SAML2_Response}; // Messages
 use SimpleSAML\SAML2\Constants as C;
 use SimpleSAML\SAML2\Exception\ArrayValidationException;
 use SimpleSAML\SAML2\XML\md\ContactPerson;
@@ -607,7 +608,7 @@ class SAML2
         $idpMetadata = $idp->getConfig();
         $spMetadata = $metadata->getMetaDataConfig($spEntityId, 'saml20-sp-remote');
 
-        $lr = Message::buildLogoutResponse($idpMetadata, $spMetadata);
+        $lr = MessageBuilder::buildLogoutResponse($idpMetadata, $spMetadata);
         $lr->setInResponseTo($state['saml:RequestId']);
         $lr->setRelayState($state['saml:RelayState']);
 
@@ -1378,9 +1379,9 @@ class SAML2
      *
      * @param \SimpleSAML\Configuration $idpMetadata The metadata of the IdP.
      * @param \SimpleSAML\Configuration $spMetadata The metadata of the SP.
-     * @param \SimpleSAML\SAML2\Assertion $assertion The assertion we are encrypting.
+     * @param \SimpleSAML\SAML2\XML\saml\Assertion $assertion The assertion we are encrypting.
      *
-     * @return \SimpleSAML\SAML2\Assertion|\SimpleSAML\SAML2\EncryptedAssertion  The assertion.
+     * @return \SimpleSAML\SAML2\XML\saml\Assertion|\SimpleSAML\SAML2\XML\saml\EncryptedAssertion  The assertion.
      *
      * @throws \SimpleSAML\Error\Exception In case the encryption key type is not supported.
      */
@@ -1449,7 +1450,7 @@ class SAML2
      * @param array $association The SP association.
      * @param string|null $relayState An id that should be carried across the logout.
      *
-     * @return \SimpleSAML\SAML2\LogoutRequest The corresponding SAML2 logout request.
+     * @return \SimpleSAML\SAML2\XML\samlp\LogoutRequest The corresponding SAML2 logout request.
      */
     private static function buildLogoutRequest(
         Configuration $idpMetadata,
@@ -1487,7 +1488,7 @@ class SAML2
      * @param \SimpleSAML\Configuration $spMetadata The metadata of the SP.
      * @param string                    $consumerURL The Destination URL of the response.
      *
-     * @return \SimpleSAML\SAML2\Response The SAML2 Response corresponding to the given data.
+     * @return \SimpleSAML\SAML2\XML\samlp\Response The SAML2 Response corresponding to the given data.
      */
     private static function buildResponse(
         Configuration $idpMetadata,

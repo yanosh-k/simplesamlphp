@@ -121,7 +121,7 @@ class SPTest extends ClearStateTestCase
      * @param array $state The state array to use in the test. This is an array of the parameters described in section
      * 2 of https://simplesamlphp.org/docs/development/saml:sp
      *
-     * @return \SimpleSAML\SAML2\AuthnRequest The AuthnRequest generated.
+     * @return \SimpleSAML\SAML2\XML\samlp\AuthnRequest The AuthnRequest generated.
      */
     private function createAuthnRequest(array $state = []): AuthnRequest
     {
@@ -129,7 +129,7 @@ class SPTest extends ClearStateTestCase
         $config = ['entityID' => 'urn:x-simplesamlphp:example-sp'];
         $as = new SpTester($info, $config);
 
-        /** @var \SimpleSAML\SAML2\AuthnRequest $ar */
+        /** @var \SimpleSAML\SAML2\XML\samlp\AuthnRequest $ar */
         $ar = null;
         try {
             $as->startSSO2Test($this->getIdpMetadata(), $state);
@@ -148,7 +148,7 @@ class SPTest extends ClearStateTestCase
      * @param array $state The state array to use in the test. This is an array of the parameters described in section
      * 2 of https://simplesamlphp.org/docs/development/saml:sp
      *
-     * @return \SimpleSAML\SAML2\LogoutRequest The LogoutRequest generated.
+     * @return \SimpleSAML\SAML2\XML\samlp\LogoutRequest The LogoutRequest generated.
      */
     private function createLogoutRequest(array $state = []): LogoutRequest
     {
@@ -156,7 +156,7 @@ class SPTest extends ClearStateTestCase
         $config = ['entityID' => 'urn:x-simplesamlphp:example-sp'];
         $as = new SpTester($info, $config);
 
-        /** @var \SimpleSAML\SAML2\LogoutRequest $lr */
+        /** @var \SimpleSAML\SAML2\XML\samlp\LogoutRequest $lr */
         $lr = null;
         try {
             $as->startSLO2($this->config, $state);
@@ -369,7 +369,7 @@ class SPTest extends ClearStateTestCase
             $r = $e->getTestResult();
             /** @var AuthnRequest $ar */
             $ar = $r['ar'];
-            $xml = $ar->toSignedXML();
+            $xml = $ar->toXML();
 
             $xpCache = XPath::getXPath($xml);
             /** @var \DOMAttr[] $q */
@@ -410,7 +410,7 @@ class SPTest extends ClearStateTestCase
             $r = $e->getTestResult();
             /** @var AuthnRequest $ar */
             $ar = $r['ar'];
-            $xml = $ar->toSignedXML();
+            $xml = $ar->toXML();
 
             $xpCache = XPath::getXPath($xml);
             /** @var \DOMAttr[] $q */
@@ -531,7 +531,7 @@ class SPTest extends ClearStateTestCase
         ];
         $as = new SpTester($info, $config);
 
-        /** @var \SimpleSAML\SAML2\AuthnRequest $ar */
+        /** @var \SimpleSAML\SAML2\XML\samlp\AuthnRequest $ar */
         try {
             $as->startSSO2Test($this->getIdpMetadata(), []);
             $this->assertTrue(false, 'Expected ExitTestException');
@@ -572,7 +572,7 @@ class SPTest extends ClearStateTestCase
 
         $as = new SpTester($info, $config);
 
-        /** @var \SimpleSAML\SAML2\AuthnRequest $ar */
+        /** @var \SimpleSAML\SAML2\XML\samlp\AuthnRequest $ar */
         try {
             $as->startSSO2Test($this->getIdpMetadata(), $state);
             $this->assertTrue(false, 'Expected ExitTestException');

@@ -132,7 +132,6 @@ class SAMLBuilder
      * Add a SecurityTokenServiceType for ADFS metadata.
      *
      * @param array $metadata The metadata with the information about the SecurityTokenServiceType.
-     */
     public function addSecurityTokenServiceType(array $metadata): void
     {
         Assert::notNull($metadata['entityid']);
@@ -148,6 +147,7 @@ class SAMLBuilder
 
         $this->entityDescriptor->addRoleDescriptor($e);
     }
+     */
 
 
     /**
@@ -156,7 +156,6 @@ class SAMLBuilder
      * @param \SimpleSAML\Configuration    $metadata The metadata to get extensions from.
      * @param \SimpleSAML\SAML2\XML\md\RoleDescriptor $e Reference to the element where the
      *   Extensions element should be included.
-     */
     private function addExtensions(Configuration $metadata, RoleDescriptor $e): void
     {
         $extensions = [];
@@ -227,13 +226,13 @@ class SAMLBuilder
 
         $e->setExtensions(new Extensions($extensions));
     }
+     */
 
 
     /**
      * Add an Organization element based on metadata array.
      *
      * @param array $metadata The metadata we should extract the organization information from.
-     */
     public function addOrganizationInfo(array $metadata): void
     {
         if (
@@ -260,6 +259,7 @@ class SAMLBuilder
 
         $this->entityDescriptor->setOrganization($org);
     }
+     */
 
 
     /**
@@ -270,7 +270,6 @@ class SAMLBuilder
      *
      * @return array An array of endpoint objects,
      *     either \SimpleSAML\SAML2\XML\md\AbstractEndpointType or \SimpleSAML\SAML2\XML\md\AbstractIndexedEndpointType.
-     */
     private static function createEndpoints(array $endpoints, string $class): array
     {
         $indexed = in_array(AbstractIndexedEndpointType::class, class_parents($class), true);
@@ -303,6 +302,7 @@ class SAMLBuilder
 
         return $ret;
     }
+     */
 
 
     /**
@@ -310,7 +310,6 @@ class SAMLBuilder
      *
      * @param \SimpleSAML\SAML2\XML\md\SPSSODescriptor $spDesc The SPSSODescriptor element.
      * @param \SimpleSAML\Configuration     $metadata The metadata.
-     */
     private function addAttributeConsumingService(
         SPSSODescriptor $spDesc,
         Configuration $metadata
@@ -337,10 +336,10 @@ class SAMLBuilder
             );
         }
 
-        /**
-         * Add an AttributeConsumingService element with information as name and description and list
-         * of requested attributes
-         */
+        //
+        // Add an AttributeConsumingService element with information as name and description and list
+        // of requested attributes
+        //
         $attributeconsumer = new AttributeConsumingService(
             $metadata->getOptionalInteger('attributes.index', 0),
             array_map(
@@ -365,6 +364,7 @@ class SAMLBuilder
 
         $spDesc->addAttributeConsumingService($attributeconsumer);
     }
+     */
 
 
     /**
@@ -372,7 +372,6 @@ class SAMLBuilder
      *
      * @param string $set The metadata set this metadata comes from.
      * @param array  $metadata The metadata.
-     */
     public function addMetadata(string $set, array $metadata): void
     {
         $this->setExpiration($metadata);
@@ -391,6 +390,7 @@ class SAMLBuilder
                 Logger::warning('Unable to generate metadata for unknown type \'' . $set . '\'.');
         }
     }
+     */
 
 
     /**
@@ -398,7 +398,6 @@ class SAMLBuilder
      *
      * @param array $metadata The metadata.
      * @param string[] $protocols The protocols supported. Defaults to \SimpleSAML\SAML2\Constants::NS_SAMLP.
-     */
     public function addMetadataSP20(array $metadata, array $protocols = [C::NS_SAMLP]): void
     {
         Assert::notNull($metadata['entityid']);
@@ -453,13 +452,13 @@ class SAMLBuilder
             }
         }
     }
+     */
 
 
     /**
      * Add metadata of a SAML 2.0 identity provider.
      *
      * @param array $metadata The metadata.
-     */
     public function addMetadataIdP20(array $metadata): void
     {
         Assert::notNull($metadata['entityid']);
@@ -516,6 +515,7 @@ class SAMLBuilder
             }
         }
     }
+     */
 
 
     /**
@@ -523,7 +523,6 @@ class SAMLBuilder
      *
      * @param array $metadata The AttributeAuthorityDescriptor, in the format returned by
      * \SimpleSAML\Metadata\SAMLParser.
-     */
     public function addAttributeAuthority(array $metadata): void
     {
         Assert::notNull($metadata['entityid']);
@@ -554,17 +553,18 @@ class SAMLBuilder
 
         $this->entityDescriptor->addRoleDescriptor($e);
     }
+     */
 
 
     /**
      * Add contact information.
      *
      * @param \SimpleSAML\SAML2\XML\md\ContactPerson $contact The details about the contact.
-     */
     public function addContact(ContactPerson $contact): void
     {
         $this->entityDescriptor->addContactPerson($contact);
     }
+     */
 
 
     /**
@@ -575,7 +575,6 @@ class SAMLBuilder
      * @param string                      $x509cert The certificate data.
      * @param string|null                 $keyName The name of the key. Should be valid for usage in an ID attribute,
      *                                             e.g. not start with a digit.
-     */
     private function addX509KeyDescriptor(
         RoleDescriptor $rd,
         string $use,
@@ -597,6 +596,7 @@ class SAMLBuilder
         );
         $rd->addKeyDescriptor($keyDescriptor);
     }
+     */
 
 
     /**
@@ -606,7 +606,6 @@ class SAMLBuilder
      *
      * @param \SimpleSAML\SAML2\XML\md\RoleDescriptor $rd The RoleDescriptor the certificate should be added to.
      * @param \SimpleSAML\Configuration    $metadata The metadata of the entity.
-     */
     private function addCertificate(RoleDescriptor $rd, Configuration $metadata): void
     {
         $keys = $metadata->getPublicKeys();
@@ -626,4 +625,5 @@ class SAMLBuilder
             $this->addX509KeyDescriptor($rd, 'signing', $metadata->getString('https.certData'));
         }
     }
+     */
 }
