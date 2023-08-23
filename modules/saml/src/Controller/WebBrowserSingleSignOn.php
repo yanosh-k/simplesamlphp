@@ -113,9 +113,9 @@ class WebBrowserSingleSignOn
      * from a SAML 2.0 SP, parses, and process it, and then authenticates the user and sends the user back
      * to the SP with an Authentication Response.
      *
-     * @return \SimpleSAML\HTTP\RunnableResponse
+     * @return void
      */
-    public function singleSignOnService(): RunnableResponse
+    public function singleSignOnService(): void
     {
         Logger::info('SAML2.0 - IdP.SSOService: Accessing SAML 2.0 IdP endpoint SSOService');
 
@@ -128,7 +128,9 @@ class WebBrowserSingleSignOn
         $idp = IdP::getById('saml2:' . $idpEntityId);
 
         try {
-            return new RunnableResponse([Module\saml\IdP\SAML2::class, 'receiveAuthnRequest'], [$idp]);
+            $response = new RunnableResponse([Module\saml\IdP\SAML2::class, 'receiveAuthnRequest'], [$idp]);
+            $response->sendContent();
+            exit;
         } catch (UnsupportedBindingException $e) {
             throw new Error\Error('SSOPARAMS', $e, 400);
         }
