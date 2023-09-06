@@ -25,6 +25,10 @@ use SimpleSAML\SAML2\XML\saml\{AttributeValue, Audience, Issuer, NameID, Subject
 use SimpleSAML\SAML2\XML\saml\{AuthenticatingAuthority, AuthnContext, AuthnContextClassRef}; // AuthnContext
 use SimpleSAML\SAML2\XML\samlp\{Status, StatusCode, StatusMessage}; // Status
 use SimpleSAML\XML\DOMDocumentFactory;
+use SimpleSAML\XMLSecurity\Alg\Signature\SignatureAlgorithmFactory;
+use SimpleSAML\XMLSecurity\CryptoEncoding\PEM;
+use SimpleSAML\XMLSecurity\Exception\SignatureVerificationFailedException;
+use SimpleSAML\XMLSecurity\Key\{PublicKey, X509Certificate as X509Cert};
 use SimpleSAML\XMLSecurity\XML\ds\{X509Certificate, X509Data, KeyInfo};
 use Symfony\Bridge\PsrHttpMessage\Factory\{HttpFoundationFactory, PsrHttpFactory};
 use Symfony\Component\HttpFoundation\{Request, Response};
@@ -410,29 +414,48 @@ class SAML2
             $psrHttpFactory = new PsrHttpFactory($psr17Factory, $psr17Factory, $psr17Factory, $psr17Factory);
             $psrRequest = $psrHttpFactory->createRequest($request);
             $binding = Binding::getCurrentBinding($psrRequest);
-            $request = $binding->receive($psrRequest);
+            $message = $binding->receive($psrRequest);
 
-            if (!($request instanceof AuthnRequest)) {
+            if (!($message instanceof AuthnRequest)) {
                 throw new Error\BadRequest(
                     "Message received on authentication request endpoint wasn't an authentication request."
                 );
             }
 
-            $issuer = $request->getIssuer();
+            $issuer = $message->getIssuer();
             if ($issuer === null) {
                 throw new Error\BadRequest(
                     'Received message on authentication request endpoint without issuer.'
                 );
             }
+
             $spEntityId = $issuer->getContent();
             $spMetadata = $metadata->getMetaDataConfig($spEntityId, 'saml20-sp-remote');
 
-            $authnRequestSigned = Message::validateMessage($spMetadata, $idpMetadata, $request);
+            $cryptoUtils = new Utils\Crypto();
+            $keyArray = $cryptoUtils->loadPublicKey($spMetadata, true);
 
-            $relayState = $request->getRelayState();
+            if ($binding instanceof HTTPRedirect) {
+                $verifier = (new SignatureAlgorithmFactory([C::SIG_RSA_SHA1]))->getAlgorithm(
+                    $request->query->get('SigAlg'),
+                    (new X509Cert(PEM::fromString($keyArray['PEM'])))->getPublicKey(),
+                );
 
-            $requestId = $request->getId();
-            $scoping = $request->getScoping();
+                if ($verifier->verify($binding->signedQuery, base64_decode($request->query->get('Signature'))) === false) {
+                    throw new SignatureVerificationFailedException('Failed to verify signature.');
+                }
+            } else {
+                $verifier = (new SignatureAlgorithmFactory([C::SIG_RSA_SHA1]))->getAlgorithm(
+                    $message->getSignature()->getSignedInfo()->getSignatureMethod()->getAlgorithm(),
+                    (new X509Cert(PEM::fromString($keyArray['PEM'])))->getPublicKey(),
+                );
+                $message = $message->verify($verifier);
+            }
+
+            $relayState = $message->getRelayState();
+
+            $requestId = $message->getId();
+            $scoping = $message->getScoping();
 
             $ProxyCount = $scoping?->getProxyCount();
             if ($ProxyCount !== null) {
@@ -454,15 +477,15 @@ class SAML2
                 }
             }
 
-            $forceAuthn = $request->getForceAuthn();
-            $isPassive = $request->getIsPassive();
-            $consumerURL = $request->getAssertionConsumerServiceURL();
-            $protocolBinding = $request->getProtocolBinding();
-            $consumerIndex = $request->getAssertionConsumerServiceIndex();
-            $extensions = $request->getExtensions();
-            $authnContext = $request->getRequestedAuthnContext();
+            $forceAuthn = $message->getForceAuthn();
+            $isPassive = $message->getIsPassive();
+            $consumerURL = $message->getAssertionConsumerServiceURL();
+            $protocolBinding = $message->getProtocolBinding();
+            $consumerIndex = $message->getAssertionConsumerServiceIndex();
+            $extensions = $message->getExtensions();
+            $authnContext = $message->getRequestedAuthnContext();
 
-            $nameIdPolicy = $request->getNameIdPolicy();
+            $nameIdPolicy = $message->getNameIdPolicy();
             $nameIDFormat = $nameIdPolicy?->getFormat();
             $allowCreate = $nameIdPolicy?->getAllowCreate() ?? false;
 
