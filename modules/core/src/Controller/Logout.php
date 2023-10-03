@@ -10,8 +10,6 @@ use SAML2\Constants;
 use SimpleSAML\{Auth, Configuration, Error, IdP, Logger, Stats, Utils};
 use SimpleSAML\Metadata\MetaDataStorageHandler;
 use SimpleSAML\Module\saml\Message;
-use SimpleSAML\Stats;
-use SimpleSAML\Utils;
 use SimpleSAML\XHTML\Template;
 use Symfony\Component\HttpFoundation\Request;
 
